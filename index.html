@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FatSound – Sons moteur pour ton fatbike</title>
+<meta name="description" content="Un vrai son de moteur (V-twin, mono, deux-temps, V8, électrique) qui suit la vitesse GPS de ton fatbike. Gratuit, sans installation.">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FatSound">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#0a0b0d;--panel:#13151a;--line:#252830;--txt:#e9ebef;--mut:#8b919c;--acc:#ff6a1a;--acc2:#ffb020;--red:#ff3b30;--ok:#34c759}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);min-height:100vh}
+.wrap{max-width:560px;margin:0 auto;padding:14px 0 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+h1{margin:0;font-size:22px;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
+h1 svg{width:30px;height:30px}
+h1 span em{font-style:normal;color:var(--acc)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pill{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--line);color:var(--mut);white-space:nowrap}
+.pill.on{color:var(--txt);border-color:#3a3f4a}
+.pill.on::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px}
+.pill.warn::before{background:var(--acc2)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+#tach{width:100%;aspect-ratio:1/.82;display:block}
+.row{display:flex;gap:10px}
+.btn{appearance:none;border:1px solid var(--line);background:#1a1d23;color:var(--txt);border-radius:14px;padding:14px 16px;font:inherit;font-weight:600;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.btn:active,.btn.held{background:#23272f}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#16110c;font-size:18px;width:100%;padding:16px}
+.btn.primary.stop{background:#2a1512;border-color:#5a2a22;color:#ff8d80}
+.btn.big{flex:1;padding:22px 10px;font-size:18px;touch-action:none}
+.btn.gas.held{background:var(--acc);color:#16110c;border-color:var(--acc)}
+.btn.brake.held{background:#c93a30;border-color:#c93a30}
+.btn.small{flex:1;padding:12px 8px;font-size:14px;touch-action:none}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:#0f1115;border:1px solid var(--line);border-radius:12px;padding:3px;margin:12px 0}
+.seg button{appearance:none;border:0;background:transparent;color:var(--mut);padding:10px;border-radius:9px;font:inherit;font-weight:600;cursor:pointer}
+.seg button.on{background:#23272f;color:var(--txt)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:0 0 10px;font-weight:600}
+.engs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.eng{appearance:none;text-align:left;background:#0f1115;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
+.eng b{display:block;font-size:15px}
+.eng small{color:var(--mut);font-size:12px}
+.eng.on{border-color:var(--acc);background:#1b140f}
+#testpanel{display:none}
+#testpanel.show{display:block}
+label.set{display:block;margin:12px 0}
+label.set .top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px}
+label.set .top span:last-child{color:var(--mut)}
+input[type=range]{width:100%;accent-color:var(--acc);height:28px}
+.tog{display:flex;justify-content:space-between;align-items:center;margin:12px 0;font-size:14px}
+.tog input{width:44px;height:26px;accent-color:var(--acc)}
+.hint{font-size:12.5px;color:var(--mut);margin:6px 0 0}
+#msg{display:none;margin-bottom:12px;padding:12px 14px;border-radius:12px;background:#2a1d10;border:1px solid #5a3b17;color:#ffcf99;font-size:14px}
+#msg.show{display:block}
+ul.good{margin:0;padding-left:18px;color:#c3c7cf;font-size:14px}
+ul.good li{margin:6px 0}
+footer{color:var(--mut);font-size:12px;margin-top:18px}
+footer p{margin:8px 0}
+details summary{cursor:pointer;font-weight:600;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>
+    <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="#ff6a1a" stroke-width="9"/><circle cx="32" cy="32" r="8" fill="#ff6a1a"/><g stroke="#ff6a1a" stroke-width="2.5"><path d="M32 12v12M32 40v12M12 32h12M40 32h12"/></g></svg>
+    <span>Fat<em>Sound</em></span>
+  </h1>
+  <div class="pills"><span class="pill" id="pGps">GPS off</span><span class="pill" id="pEng">Moteur off</span></div>
+</header>
+
+<div id="msg"></div>
+
+<div class="card">
+  <canvas id="tach"></canvas>
+  <button class="btn primary" id="btnStart">Démarrer le moteur</button>
+  <div class="seg" role="tablist" aria-label="Mode">
+    <button id="mGps" class="on">Sortie GPS</button>
+    <button id="mTest">Test (sans bouger)</button>
+  </div>
+  <div id="testpanel">
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn small" id="btnRev">Rev <small style="font-weight:400;opacity:.7">(maintenir à l'arrêt)</small></button>
+      <button class="btn small" id="btnDemo" style="touch-action:manipulation">▶ Lancer la démo</button>
+    </div>
+    <div class="row">
+      <button class="btn big brake" id="btnBrake">Frein</button>
+      <button class="btn big gas" id="btnGas">Gaz</button>
+    </div>
+    <p class="hint">Le test réagit tout de suite. En balade, le GPS et l'enceinte ajoutent un léger retard.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Moteur</h2>
+  <div class="engs" id="engs"></div>
+</div>
+
+<div class="card">
+  <details>
+    <summary>Réglages</summary>
+    <label class="set"><div class="top"><span>Volume</span><span id="vVol"></span></div><input type="range" id="rVol" min="0" max="100" step="1"></label>
+    <label class="set"><div class="top"><span>Échelle de vitesse</span><span id="vScale"></span></div><input type="range" id="rScale" min="10" max="40" step="1"></label>
+    <p class="hint" id="scaleHint"></p>
+    <div class="tog"><span>Pétarades en décélération</span><input type="checkbox" id="cPops"></div>
+    <div class="tog"><span>Démarrer au premier toucher</span><input type="checkbox" id="cAuto"></div>
+  </details>
+</div>
+
+<div class="card">
+  <h2>Bon à savoir</h2>
+  <ul class="good">
+    <li>Ça marche dans le navigateur de ton téléphone. Pose-le sur le guidon, branche une enceinte Bluetooth ou utilise celle du téléphone.</li>
+    <li>Garde la page ouverte et l'écran allumé : le son s'arrête si le navigateur passe en arrière-plan (l'écran reste allumé tout seul quand c'est possible).</li>
+    <li>Le régime suit ta vitesse GPS avec environ une demi-seconde de retard. Les rapports passent tout seuls.</li>
+    <li>Ta position reste dans le navigateur : elle sert uniquement à mesurer la vitesse et n'est envoyée nulle part.</li>
+    <li>Sur iPhone, coupe le mode silencieux. Pour l'ajouter à l'écran d'accueil : Partager puis « Sur l'écran d'accueil ».</li>
+  </ul>
+</div>
+
+<footer>
+  <p>Garde ton attention sur la route. Un son de moteur peut masquer les bruits alentour : volume raisonnable, jamais d'écouteurs dans les deux oreilles. Respecte la réglementation locale sur le bruit.</p>
+  <p>Application indépendante, non affiliée à une marque de moto ou de vélo.</p>
+</footer>
+</div>
+
+<script type="text/plain" id="worklet">
+class EngineProcessor extends AudioWorkletProcessor{
+  static get parameterDescriptors(){return [
+    {name:'rpm',defaultValue:0,minValue:0,maxValue:30000,automationRate:'k-rate'},
+    {name:'load',defaultValue:.2,minValue:0,maxValue:1,automationRate:'k-rate'},
+    {name:'pop',defaultValue:0,minValue:0,maxValue:1,automationRate:'k-rate'}];}
+  constructor(){
+    super();this.c=null;this.ph=0;this.wp=0;this.y=[];this.rpm=0;this.nl=0;
+    this.port.onmessage=e=>{if(e.data&&e.data.engine){this.c=e.data.engine;this.y=this.c.res.map(()=>[0,0]);}};
+  }
+  process(_i,outs,p){
+    const out=outs[0][0],c=this.c,N=out.length;
+    if(!c){out.fill(0);return true;}
+    const rpmT=p.rpm[0],load=p.load[0],pop=p.pop[0],sr=sampleRate;
+    const rn=Math.max(0,Math.min(1,(rpmT-c.idle)/(c.red-c.idle)));
+    const R=c.res.length,a1=[],a2=[],gn=[];
+    for(let j=0;j<R;j++){
+      const r=c.res[j],f=r.f*(1+(c.fscale||0)*rn),rad=Math.exp(-Math.PI*r.bw/sr),th=2*Math.PI*f/sr;
+      a1.push(2*rad*Math.cos(th));a2.push(-rad*rad);gn.push(r.g*Math.sin(th));
+    }
+    const x=new Array(R).fill(0),rpm0=this.rpm;
+    for(let i=0;i<N;i++){
+      const rpm=rpm0+(rpmT-rpm0)*(i+1)/N;
+      let s=0;
+      if(c.type==='whine'){
+        const f=70+rpm*c.whineK;this.wp+=f/sr;if(this.wp>=1)this.wp-=1;
+        const q=6.2831853*this.wp;
+        const amp=rpm>5?(0.25+0.75*load)*Math.min(1,rpm/300):0;
+        s=amp*(Math.sin(q)*0.6+Math.sin(2*q+0.5)*0.25+Math.sin(3*q+1.1)*0.12+Math.sin(q*5.5)*0.06);
+        s+=amp*0.03*(Math.random()*2-1);
+      }else{
+        const inc=(rpm/(c.stroke===2?60:120))/sr;
+        if(inc>0){
+          const o=this.ph;let n=o+inc;const wr=n>=1;if(wr)n-=1;
+          for(let k=0;k<c.angles.length;k++){
+            const a=c.angles[k],hit=wr?(a>o||a<=n):(a>o&&a<=n);
+            if(hit){
+              const am=(0.3+0.7*load)*c.amps[k]*(0.88+0.24*Math.random());
+              for(let j=0;j<R;j++)x[j]+=am*gn[j];
+            }
+          }
+          this.ph=n;
+        }
+        if(pop>0&&Math.random()<pop*6/sr){
+          const am=0.6+Math.random()*0.9;
+          for(let j=0;j<R;j++)x[j]+=am*gn[j]*(j===0?0.5:1.4);
+        }
+        for(let j=0;j<R;j++){
+          const y=this.y[j],v=x[j]+a1[j]*y[0]+a2[j]*y[1];
+          y[1]=y[0];y[0]=v;x[j]=0;s+=v;
+        }
+        if(rpm>60){
+          this.nl+=((Math.random()*2-1)-this.nl)*c.nk;
+          s+=this.nl*c.noise*(0.2+0.8*load)*(0.3+rn);
+        }
+      }
+      out[i]=s*c.gain;
+    }
+    this.rpm=rpmT;
+    return true;
+  }
+}
+registerProcessor('engine',EngineProcessor);
+</script>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- Moteurs ---------- */
+const ENGINES=[
+ {id:'vtwin',name:'V-twin cruiser',sub:'Patate lourde à 45°',type:'pulse',stroke:4,angles:[0,.4375],amps:[1,.9],idle:900,red:5400,gears:[30,50,75,105,135],
+  res:[{f:95,bw:40,g:1.3},{f:210,bw:90,g:.9},{f:520,bw:260,g:.35}],fscale:.6,noise:.06,nk:.12,gain:.5,drive:1.6,lpMin:700,lpMax:3200,pops:true},
+ {id:'thumper',name:'Gros mono',sub:'Le thumper des gros trails',type:'pulse',stroke:4,angles:[0],amps:[1],idle:1300,red:7500,gears:[25,42,62,85,105],
+  res:[{f:130,bw:55,g:1.2},{f:300,bw:140,g:.8},{f:800,bw:400,g:.35}],fscale:.5,noise:.07,nk:.15,gain:.5,drive:1.8,lpMin:900,lpMax:3800,pops:true},
+ {id:'twostroke',name:'Deux-temps',sub:'Cross / enduro qui crie',type:'pulse',stroke:2,angles:[0],amps:[1],idle:1900,red:10000,gears:[30,50,72,95,120,145],
+  res:[{f:240,bw:120,g:1},{f:600,bw:200,g:.9},{f:1500,bw:700,g:.6}],fscale:.8,noise:.1,nk:.35,gain:.45,drive:2.5,lpMin:1500,lpMax:7000,pops:true},
+ {id:'twin270',name:'Bicylindre',sub:'Roadster 270°, irrégulier',type:'pulse',stroke:4,angles:[0,.375],amps:[1,.95],idle:1100,red:9000,gears:[35,58,85,115,150],
+  res:[{f:140,bw:60,g:1.1},{f:380,bw:150,g:.8},{f:1000,bw:500,g:.4}],fscale:.6,noise:.06,nk:.2,gain:.5,drive:1.8,lpMin:1000,lpMax:4500,pops:true},
+ {id:'inline4',name:'4 cylindres',sub:'Sportive, jusqu\'à 13 000 tr/min',type:'pulse',stroke:4,angles:[0,.25,.5,.75],amps:[1,1,1,1],idle:1300,red:13000,gears:[45,70,100,135,170,210],
+  res:[{f:200,bw:90,g:1},{f:520,bw:200,g:.8},{f:1300,bw:600,g:.5}],fscale:.7,noise:.05,nk:.3,gain:.42,drive:2,lpMin:1500,lpMax:6500,pops:true},
+ {id:'v8',name:'V8',sub:'Cross-plane, grave et rond',type:'pulse',stroke:4,angles:[0,.125,.25,.375,.5,.625,.75,.875],amps:[1,.7,.95,.65,1,.7,.95,.65],idle:750,red:7000,gears:[40,65,95,130,170],
+  res:[{f:70,bw:30,g:1.4},{f:160,bw:70,g:1},{f:420,bw:200,g:.45}],fscale:.5,noise:.05,nk:.1,gain:.4,drive:2.2,lpMin:600,lpMax:2800,pops:true},
+ {id:'electric',name:'Électrique',sub:'Sifflement futuriste',type:'whine',stroke:4,angles:[0],amps:[1],idle:0,red:8000,gears:[130],
+  res:[{f:100,bw:50,g:1}],fscale:0,noise:0,nk:.2,gain:.45,drive:.8,lpMin:2500,lpMax:7000,pops:false,whineK:.09}
+];
+
+/* ---------- État & réglages ---------- */
+const S={eng:'vtwin',vol:70,scale:22,pops:true,auto:false,mode:'gps'};
+try{Object.assign(S,JSON.parse(localStorage.getItem('fatsound')||'{}'));}catch(e){}
+const save=()=>{try{localStorage.setItem('fatsound',JSON.stringify(S));}catch(e){}};
+const E=()=>ENGINES.find(e=>e.id===S.eng)||ENGINES[0];
+
+let ctx,node,shaper,body,lpf,comp,master,silentEl,wake=null;
+let running=false,starting=false;
+let rpmS=0,loadS=.15,gear=0,shiftT=0,startT=0,shown=0,sim=0,prevV=0,accS=0;
+const ctl={gas:0,brake:0,rev:0};
+const gps={id:null,v:0,t:0,last:null,acc:null,ok:false};
+const demo={on:false,t:0};
+
+/* ---------- UI ---------- */
+function showMsg(t){const m=$('#msg');m.textContent=t;m.classList.toggle('show',!!t);}
+function buildEngines(){
+  const box=$('#engs');box.innerHTML='';
+  ENGINES.forEach(e=>{
+    const b=document.createElement('button');b.className='eng'+(e.id===S.eng?' on':'');
+    b.innerHTML='<b>'+e.name+'</b><small>'+e.sub+'</small>';
+    b.onclick=()=>{S.eng=e.id;save();gear=0;rpmS=Math.min(rpmS,e.red);buildEngines();applyEngine();};
+    box.appendChild(b);
+  });
+}
+function syncSettings(){
+  $('#rVol').value=S.vol;$('#vVol').textContent=S.vol+'%';
+  $('#rScale').value=S.scale;
+  const k=S.scale/10;$('#vScale').textContent='×'+k.toFixed(1);
+  $('#scaleHint').textContent='À 25 km/h réels, le moteur sonne comme à '+Math.round(25*k)+' km/h. Monte l\'échelle si ça te paraît trop calme.';
+  $('#cPops').checked=!!S.pops;$('#cAuto').checked=!!S.auto;
+  $('#mGps').classList.toggle('on',S.mode==='gps');$('#mTest').classList.toggle('on',S.mode==='test');
+  $('#testpanel').classList.toggle('show',S.mode==='test');
+}
+function setPill(id,txt,on,warn){const p=$(id);p.textContent=txt;p.classList.toggle('on',!!on);p.classList.toggle('warn',!!warn);}
+function refreshPills(){
+  setPill('#pEng',running?'Moteur on':'Moteur off',running);
+  if(S.mode==='test')setPill('#pGps','Mode test',running);
+  else if(gps.id==null)setPill('#pGps','GPS off',false);
+  else if(!gps.ok)setPill('#pGps','Recherche GPS…',true,true);
+  else setPill('#pGps','GPS'+(gps.acc?' ±'+Math.round(gps.acc)+' m':' ok'),true);
+  const b=$('#btnStart');b.textContent=running?'Arrêter le moteur':'Démarrer le moteur';b.classList.toggle('stop',running);
+}
+
+/* ---------- Audio ---------- */
+function silentWav(){
+  const n=4000,b=new ArrayBuffer(44+n),v=new DataView(b);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
+  for(let i=0;i<n;i++)v.setUint8(44+i,128);
+  return URL.createObjectURL(new Blob([b],{type:'audio/wav'}));
+}
+function applyEngine(){
+  if(!ctx)return;
+  const e=E();
+  node.port.postMessage({engine:JSON.parse(JSON.stringify(e))});
+  const k=e.drive,c=new Float32Array(1024),nrm=Math.tanh(k);
+  for(let i=0;i<1024;i++){const x=i/511.5-1;c[i]=Math.tanh(k*x)/nrm;}
+  shaper.curve=c;
+}
+async function initAudio(){
+  if(ctx){if(ctx.state!=='running')await ctx.resume();return;}
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)throw new Error('Ce navigateur ne gère pas l\'audio Web.');
+  ctx=new AC({latencyHint:'interactive'});
+  if(!ctx.audioWorklet||typeof AudioWorkletNode==='undefined'){ctx.close();ctx=null;throw new Error('Ce navigateur ne gère pas le moteur audio (AudioWorklet). Mets-le à jour ou essaie Chrome / Safari récent. Vérifie aussi que la page est en HTTPS.');}
+  const url=URL.createObjectURL(new Blob([$('#worklet').textContent],{type:'application/javascript'}));
+  await ctx.audioWorklet.addModule(url);
+  node=new AudioWorkletNode(ctx,'engine',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1]});
+  shaper=ctx.createWaveShaper();shaper.oversample='2x';
+  body=ctx.createBiquadFilter();body.type='lowshelf';body.frequency.value=180;body.gain.value=4;
+  lpf=ctx.createBiquadFilter();lpf.type='lowpass';lpf.Q.value=.7;lpf.frequency.value=2000;
+  comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=6;
+  master=ctx.createGain();master.gain.value=0;
+  node.connect(shaper);shaper.connect(body);body.connect(lpf);lpf.connect(comp);comp.connect(master);master.connect(ctx.destination);
+  applyEngine();
+  if(ctx.state!=='running')await ctx.resume();
+}
+const volGain=()=>Math.pow(S.vol/100,1.6)*1.1;
+
+async function start(){
+  if(running||starting)return;
+  starting=true;showMsg('');
+  try{await initAudio();}catch(err){starting=false;showMsg(err.message||String(err));return;}
+  try{if(!silentEl){silentEl=new Audio(silentWav());silentEl.loop=true;}silentEl.play().catch(()=>{});}catch(e){}
+  running=true;starting=false;startT=0;rpmS=0;gear=0;shiftT=0;loadS=.3;
+  master.gain.cancelScheduledValues(ctx.currentTime);
+  master.gain.setTargetAtTime(volGain(),ctx.currentTime,.05);
+  if(S.mode==='gps')startGPS();
+  requestWake();
+  refreshPills();
+}
+function stop(){
+  if(!running)return;
+  running=false;demo.on=false;
+  if(master){master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setTargetAtTime(0,ctx.currentTime,.12);}
+  stopGPS();releaseWake();
+  try{silentEl&&silentEl.pause();}catch(e){}
+  setTimeout(()=>{if(!running&&ctx&&ctx.state==='running')ctx.suspend();},700);
+  shown=0;sim=0;
+  refreshPills();
+}
+
+/* ---------- GPS ---------- */
+function hav(a,b,c,d){const R=6371000,t=Math.PI/180,x=(c-a)*t,y=(d-b)*t,h=Math.sin(x/2)**2+Math.cos(a*t)*Math.cos(c*t)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function startGPS(){
+  if(gps.id!=null)return;
+  if(!navigator.geolocation){showMsg('Pas de GPS disponible sur cet appareil. Utilise le mode Test.');return;}
+  gps.ok=false;gps.last=null;
+  gps.id=navigator.geolocation.watchPosition(onPos,onGpsErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  refreshPills();
+}
+function stopGPS(){
+  if(gps.id!=null){navigator.geolocation.clearWatch(gps.id);gps.id=null;}
+  gps.ok=false;gps.v=0;refreshPills();
+}
+function onPos(p){
+  const c=p.coords;let v=c.speed;
+  if(v==null||isNaN(v)){
+    v=0;
+    if(gps.last){const dt=(p.timestamp-gps.last.ts)/1000;if(dt>0)v=hav(gps.last.lat,gps.last.lon,c.latitude,c.longitude)/dt;}
+  }
+  gps.last={lat:c.latitude,lon:c.longitude,ts:p.timestamp};
+  let k=v*3.6;if(k<1.5)k=0;
+  gps.v=k;gps.t=performance.now()/1000;gps.acc=c.accuracy;
+  if(!gps.ok){gps.ok=true;showMsg('');}
+  refreshPills();
+}
+function onGpsErr(e){
+  gps.ok=false;
+  showMsg(e.code===1?'Localisation refusée. Autorise-la dans les réglages du navigateur, ou utilise le mode Test.':
+    e.code===2?'Position GPS introuvable pour l\'instant. Va à l\'extérieur ou réessaie.':'Le GPS met trop de temps à répondre…');
+  refreshPills();
+}
+async function requestWake(){try{if('wakeLock' in navigator&&running)wake=await navigator.wakeLock.request('screen');}catch(e){}}
+function releaseWake(){try{wake&&wake.release();}catch(e){}wake=null;}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&running){requestWake();if(ctx&&ctx.state!=='running')ctx.resume();}
+});
+
+/* ---------- Simulation / boucle ---------- */
+function demoStep(t){
+  if(t<.6)return[0,0,0];if(t<2)return[0,0,1];if(t<12)return[1,0,0];if(t<15)return[0,0,0];
+  if(t<20)return[.75,0,0];if(t<23)return[0,.55,0];if(t<27)return[.5,0,0];if(t<31)return[0,.8,0];if(t<33)return[0,0,0];
+  return null;
+}
+function step(dt,now){
+  const e=E(),gears=e.gears;
+  let spReal;
+  if(S.mode==='gps'){
+    const tgt=(gps.ok&&now-gps.t<4)?gps.v:0;
+    shown+=(tgt-shown)*(1-Math.exp(-dt*3));if(shown<.3&&tgt===0)shown=0;
+    spReal=shown;
+  }else{
+    let gas=ctl.gas,br=ctl.brake,rev=ctl.rev;
+    if(demo.on){demo.t+=dt;const d=demoStep(demo.t);if(d){gas=d[0];br=d[1];rev=d[2];}else{demo.on=false;$('#btnDemo').textContent='▶ Lancer la démo';}}
+    const a=gas*6*(1-sim/70)-(sim>0?.4+.035*sim:0)-br*14;
+    sim=clamp(sim+a*dt,0,55);shown=sim;spReal=sim;
+    ctl._g=gas;ctl._b=br;ctl._r=rev;
+  }
+  const spV=spReal*S.scale/10;
+  const acc=(spV-prevV)/Math.max(dt,.001);prevV=spV;
+  accS+=(acc-accS)*(1-Math.exp(-dt*4));
+  let load;
+  if(S.mode==='test'){load=ctl._g>.05?.3+.7*ctl._g:(ctl._b>.05?.02:.12);}
+  else{load=clamp(.15+(accS/(S.scale/10))*.22,.02,1);}
+  loadS+=(load-loadS)*(1-Math.exp(-dt*8));
+
+  const multi=gears.length>1;
+  let rev=S.mode==='test'?(ctl._r||0):0;
+  let rpmT;
+  if(shiftT>0){shiftT-=dt;}
+  if(multi){
+    let r=spV/gears[gear]*e.red;
+    if(shiftT<=0){
+      if(r>.93*e.red&&gear<gears.length-1){gear++;shiftT=.16;}
+      else if(gear>0&&spV<gears[gear-1]*.62){gear--;shiftT=.16;}
+    }
+    rpmT=Math.max(e.idle,spV/gears[gear]*e.red);
+    if(spV<1.5)gear=0;
+  }else{rpmT=spV/gears[0]*e.red;}
+  if(spV<1.5&&rev>0)rpmT=Math.max(rpmT,e.idle+rev*(e.red*.75-e.idle));
+  if(shiftT>0)rpmT*=.86;
+  const rn=clamp((rpmT-e.idle)/(e.red-e.idle),0,1);
+  if(multi&&rn<.1)rpmT*=1+.015*Math.sin(now*7.3)+.01*Math.sin(now*3.1);
+
+  if(running){
+    startT+=dt;
+    if(e.type==='whine'){rpmS+=(rpmT-rpmS)*(1-Math.exp(-dt*(rpmT>rpmS?10:6)));}
+    else if(startT<.8){rpmS=210+Math.random()*30;loadS=.35;}
+    else if(startT<1.3){rpmS+=(e.idle*1.6-rpmS)*(1-Math.exp(-dt*12));}
+    else{rpmS+=(rpmT-rpmS)*(1-Math.exp(-dt*(rpmT>rpmS?9:5)));}
+  }else{rpmS+=(0-rpmS)*(1-Math.exp(-dt*6));}
+
+  if(ctx&&node){
+    const rn2=clamp((rpmS-e.idle)/(e.red-e.idle),0,1);
+    const pop=(S.pops&&e.pops&&running&&((loadS<.1&&rn2>.35&&accS<-1)||shiftT>0&&rn2>.5))?.9:0;
+    node.parameters.get('rpm').value=running?rpmS:0;
+    node.parameters.get('load').value=loadS;
+    node.parameters.get('pop').value=pop;
+    const f=(e.lpMin+(e.lpMax-e.lpMin)*(.25+.75*loadS))*(.55+.7*rn2);
+    lpf.frequency.setTargetAtTime(clamp(f,300,12000),ctx.currentTime,.05);
+  }
+}
+
+/* ---------- Affichage ---------- */
+function draw(){
+  const cv=$('#tach'),dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(!w||!h)return;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const e=E(),cx=w/2,cy=h*.56,r=Math.min(w*.4,h*.5),a0=Math.PI*.75,span=Math.PI*1.5;
+  const rn=clamp(rpmS/e.red,0,1);
+  g.lineCap='round';g.lineWidth=r*.11;
+  g.strokeStyle='#1c1f25';g.beginPath();g.arc(cx,cy,r,a0,a0+span);g.stroke();
+  g.strokeStyle='#3a1a18';g.beginPath();g.arc(cx,cy,r,a0+span*.88,a0+span);g.stroke();
+  if(rn>.004){
+    const gr=g.createLinearGradient(cx-r,cy,cx+r,cy);gr.addColorStop(0,'#ff8a1a');gr.addColorStop(.7,'#ff6a1a');gr.addColorStop(1,'#ff3b30');
+    g.strokeStyle=rn>.88?'#ff3b30':gr;g.beginPath();g.arc(cx,cy,r,a0,a0+span*rn);g.stroke();
+  }
+  g.fillStyle='#8b919c';g.font='500 '+Math.max(10,r*.09)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
+  const n=Math.floor(e.red/1000),every=n>9?2:1;
+  for(let i=0;i<=n;i+=every){
+    const a=a0+span*(i*1000/e.red);
+    g.strokeStyle='#3a3f4a';g.lineWidth=2;g.beginPath();
+    g.moveTo(cx+Math.cos(a)*r*.82,cy+Math.sin(a)*r*.82);g.lineTo(cx+Math.cos(a)*r*.9,cy+Math.sin(a)*r*.9);g.stroke();
+    g.fillText(String(i),cx+Math.cos(a)*r*.7,cy+Math.sin(a)*r*.7);
+  }
+  g.fillStyle='#e9ebef';g.font='700 '+r*.62+'px system-ui,sans-serif';g.fillText(String(Math.round(shown)),cx,cy-r*.04);
+  g.fillStyle='#8b919c';g.font='500 '+r*.14+'px system-ui,sans-serif';g.fillText('km/h',cx,cy+r*.3);
+  const multi=e.gears.length>1;
+  let gt='—';
+  if(multi)gt=(shown*S.scale/10<1.5&&shiftT<=0)?'N':String(gear+1);
+  g.fillStyle=running?'#ff6a1a':'#4a4f5a';g.font='700 '+r*.26+'px system-ui,sans-serif';g.fillText(gt,cx,cy+r*.62);
+  g.fillStyle='#8b919c';g.font='500 '+r*.12+'px system-ui,sans-serif';
+  g.fillText(e.type==='whine'?'moteur électrique':(Math.round(rpmS/10)*10)+' tr/min',cx,cy+r*.92);
+}
+let last=performance.now();
+function frame(t){
+  const dt=Math.min(.1,(t-last)/1000);last=t;
+  step(dt,t/1000);draw();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- Contrôles ---------- */
+function hold(el,on,off){
+  const d=e=>{e.preventDefault();el.classList.add('held');on();};
+  const u=()=>{el.classList.remove('held');off();};
+  el.addEventListener('pointerdown',d);
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>el.addEventListener(n,u));
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+hold($('#btnGas'),()=>ctl.gas=1,()=>ctl.gas=0);
+hold($('#btnBrake'),()=>ctl.brake=1,()=>ctl.brake=0);
+hold($('#btnRev'),()=>ctl.rev=1,()=>ctl.rev=0);
+window.addEventListener('keydown',e=>{
+  if(S.mode!=='test')return;
+  if(e.key==='ArrowUp')ctl.gas=1;if(e.key==='ArrowDown')ctl.brake=1;if(e.key==='r'||e.key==='R')ctl.rev=1;
+});
+window.addEventListener('keyup',e=>{
+  if(e.key==='ArrowUp')ctl.gas=0;if(e.key==='ArrowDown')ctl.brake=0;if(e.key==='r'||e.key==='R')ctl.rev=0;
+});
+$('#btnStart').onclick=()=>running?stop():start();
+$('#btnDemo').onclick=async()=>{
+  if(demo.on){demo.on=false;$('#btnDemo').textContent='▶ Lancer la démo';return;}
+  if(!running)await start();
+  if(!running)return;
+  sim=0;shown=0;gear=0;demo.t=0;demo.on=true;$('#btnDemo').textContent='■ Arrêter la démo';
+};
+function setMode(m){
+  if(S.mode===m)return;
+  S.mode=m;save();demo.on=false;$('#btnDemo').textContent='▶ Lancer la démo';
+  shown=0;sim=0;gear=0;
+  if(running){if(m==='gps')startGPS();else stopGPS();}
+  syncSettings();refreshPills();
+}
+$('#mGps').onclick=()=>setMode('gps');
+$('#mTest').onclick=()=>setMode('test');
+$('#rVol').oninput=e=>{S.vol=+e.target.value;$('#vVol').textContent=S.vol+'%';save();if(running&&master)master.gain.setTargetAtTime(volGain(),ctx.currentTime,.05);};
+$('#rScale').oninput=e=>{S.scale=+e.target.value;save();syncSettings();};
+$('#cPops').onchange=e=>{S.pops=e.target.checked;save();};
+$('#cAuto').onchange=e=>{S.auto=e.target.checked;save();};
+document.addEventListener('pointerdown',e=>{
+  if(S.auto&&!running&&!starting&&!e.target.closest('#btnStart,#btnDemo,summary,input,.seg'))start();
+},{capture:true});
+
+/* ---------- Init ---------- */
+if(!ENGINES.some(e=>e.id===S.eng))S.eng='vtwin';
+buildEngines();syncSettings();refreshPills();
+requestAnimationFrame(frame);
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
